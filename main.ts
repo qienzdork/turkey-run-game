@@ -6,7 +6,7 @@
 // twice and both runs must write the same bytes, so it does nothing
 // time- or randomness-dependent: a plain copy and a deterministic dossier.
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -28,8 +28,13 @@ const DOSSIER = {
 
 // Start from a clean output directory so a stale file from an earlier
 // run can never leak into this one and break the byte-identical rule.
-rmSync(out, { recursive: true, force: true });
+// The directory itself must stay put: in the grader /output is a mounted
+// volume, and removing a mount point fails with EBUSY. So clear what is
+// inside it instead of removing the directory.
 mkdirSync(out, { recursive: true });
+for (const name of readdirSync(out)) {
+  rmSync(join(out, name), { recursive: true, force: true });
+}
 
 // The playable game: plain static files, game/index.html and its modules.
 cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });
